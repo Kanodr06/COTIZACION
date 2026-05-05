@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema LUMY - Documentos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f0f0f0; display: flex; padding: 20px; gap: 20px; }
+        
+        /* Panel Lateral */
+        .editor { width: 380px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: 90vh; overflow-y: auto; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
+        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .selector-tipo { background: #e8f4fd; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #3498db; }
+        
+        button { width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        .btn-add { background: #27ae60; margin-bottom: 20px; font-size: 12px; padding: 5px; }
+        
+        /* Hoja de PDF */
+        #hoja-pdf { width: 210mm; min-height: 297mm; background: white; padding: 25mm; box-sizing: border-box; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 28px; letter-spacing: 4px; color: #000; }
+        .header small { font-size: 12px; letter-spacing: 2px; }
+        
+        .fecha { margin-bottom: 20px; font-size: 14px; }
+        .intro { margin-bottom: 25px; font-size: 15px; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th { border-bottom: 2px solid #000; text-align: left; padding: 12px; font-size: 14px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        .total-row { font-weight: bold; font-size: 16px; }
+
+        .firmas { display: flex; justify-content: space-between; margin-top: 80px; }
+        .firma-box { width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 10px; font-size: 13px; }
+        
+        .footer-msg { text-align: center; margin-top: 60px; font-style: italic; color: #555; font-size: 16px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="editor">
+    <h3 style="margin-top:0">Panel de Control LUMY</h3>
+    
+    <div class="selector-tipo">
+        <label>TIPO DE DOCUMENTO:</label>
+        <select id="tipoDoc" onchange="update()">
+            <option value="consignacion">Entrega en Consignación</option>
+            <option value="cotizacion">Cotización de Productos</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Lugar y Fecha:</label>
+        <input type="text" id="inFecha" value="Bogotá D.C, 5 de Mayo de 2026" oninput="update()">
+    </div>
+    
+    <div class="input-group">
+        <label>Dirigido a (Nombre Cliente/Parroquia):</label>
+        <input type="text" id="inReceptor" placeholder="Ej: Parroquia San Calixto" oninput="update()">
+    </div>
+    
+    <hr>
+    <h4>Lista de Productos</h4>
+    <div id="items-inputs">
+        <!-- Las filas se agregan aquí -->
+    </div>
+    <button class="btn-add" onclick="addRow()">+ Agregar Producto</button>
+
+    <hr>
+    <div class="input-group">
+        <label>Firma Izquierda (Receptor):</label>
+        <input type="text" id="inCargoIzquierda" value="PÁRROCO" placeholder="Cargo/Título" oninput="update()">
+        <input type="text" id="inNombreIzquierda" placeholder="Nombre del responsable" oninput="update()">
+    </div>
+    
+    <div class="input-group">
+        <label>Firma Derecha (LUMY):</label>
+        <input type="text" id="inNombreDerecha" value="CATHERINE VASQUEZ LENTINO" oninput="update()">
+    </div>
+    
+    <button onclick="downloadPDF()" style="background:#e67e22">DESCARGAR PDF</button>
+</div>
+
+<div id="hoja-pdf">
+    <div class="header">
+        <h1>LUMY</h1>
+        <small>- VELAS ARTESANALES -</small>
+    </div>
+
+    <div class="fecha" id="outFecha">Bogotá D.C, 5 de Mayo de 2026</div>
+    
+    <div class="intro">
+        <span id="outReceptor" style="font-weight:bold">NOMBRE CLIENTE</span> 
+        <span id="outFrase">nos recibe en consignación:</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50%;">DISEÑO</th>
+                <th style="text-align: center;">CANTIDAD</th>
+                <th style="text-align: right;">PRECIO UNIT</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-body">
+            <!-- Filas dinámicas -->
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="2" style="text-align: right; border:none; padding-top:20px">TOTAL:</td>
+                <td id="outTotal" style="text-align: right; border-bottom: 2px double #000; padding-top:20px">$ 0</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="firmas">
+        <div class="firma-box">
+            <span id="outNombreIzquierda">NOMBRE RESPONSABLE</span><br>
+            <strong id="outCargoIzquierda">PÁRROCO</strong>
+        </div>
+        <div class="firma-box">
+            <span id="outNombreDerecha">CATHERINE VASQUEZ LENTINO</span><br>
+            <strong>LUMY</strong>
+        </div>
+    </div>
+
+    <div class="footer-msg">
+        AMA TU HOGAR, DECORA CON LUMY
+    </div>
+</div>
+
+<script>
+    // Agregar fila inicial al cargar
+    window.onload = () => { addRow(); };
+
+    function addRow() {
+        const container = document.getElementById('items-inputs');
+        const div = document.createElement('div');
+        div.style.display = "flex";
+        div.style.gap = "5px";
+        div.style.marginBottom = "5px";
+        div.innerHTML = `
+            <input type="text" placeholder="Diseño" class="p-nombre" oninput="update()" style="flex:2">
+            <input type="number" placeholder="Cant" class="p-cant" oninput="update()" style="flex:1">
+            <input type="number" placeholder="Precio" class="p-precio" oninput="update()" style="flex:1.5">
+        `;
+        container.appendChild(div);
+    }
+
+    function update() {
+        // Actualizar Textos Básicos
+        document.getElementById('outFecha').innerText = document.getElementById('inFecha').value;
+        document.getElementById('outReceptor').innerText = document.getElementById('inReceptor').value || 'NOMBRE CLIENTE';
+        document.getElementById('outNombreIzquierda').innerText = document.getElementById('inNombreIzquierda').value || 'NOMBRE RESPONSABLE';
+        document.getElementById('outCargoIzquierda').innerText = document.getElementById('inCargoIzquierda').value.toUpperCase();
+        document.getElementById('outNombreDerecha').innerText = document.getElementById('inNombreDerecha').value;
+
+        // Lógica de la Frase según tipo
+        const tipo = document.getElementById('tipoDoc').value;
+        const outFrase = document.getElementById('outFrase');
+        if(tipo === 'consignacion') {
+            outFrase.innerText = "nos recibe en consignación:";
+        } else {
+            outFrase.innerText = "presenta la siguiente cotización:";
+        }
+
+        // Actualizar Tabla y Gran Total
+        const nombres = document.querySelectorAll('.p-nombre');
+        const cants = document.querySelectorAll('.p-cant');
+        const precios = document.querySelectorAll('.p-precio');
+        const tbody = document.getElementById('tabla-body');
+        
+        let granTotal = 0;
+        tbody.innerHTML = '';
+
+        nombres.forEach((n, i) => {
+            const c = parseFloat(cants[i].value) || 0;
+            const p = parseFloat(precios[i].value) || 0;
+            const subtotal = c * p;
+            granTotal += subtotal;
+
+            if(n.value || c > 0) {
+                const row = `<tr>
+                    <td>${n.value.toUpperCase() || 'N/A'}</td>
+                    <td style="text-align: center;">${c}</td>
+                    <td style="text-align: right;">$ ${p.toLocaleString('es-CO')}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            }
+        });
+
+        document.getElementById('outTotal').innerText = `$ ${granTotal.toLocaleString('es-CO')}`;
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('hoja-pdf');
+        const tipo = document.getElementById('tipoDoc').value;
+        const fechaDoc = new Date().toISOString().slice(0,10);
+        
+        const opt = {
+            margin: 0,
+            filename: `LUMY_${tipo}_${fechaDoc}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+
+</body>
+</html>
