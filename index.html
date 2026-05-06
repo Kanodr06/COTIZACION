@@ -25,7 +25,7 @@
         .header small { font-size: 12px; letter-spacing: 2px; }
         
         .fecha { margin-bottom: 20px; font-size: 14px; }
-        .intro { margin-bottom: 25px; font-size: 15px; }
+        .intro { margin-bottom: 25px; font-size: 15px; line-height: 1.6; }
         
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         th { border-bottom: 2px solid #000; text-align: left; padding: 12px; font-size: 14px; }
@@ -49,6 +49,7 @@
         <select id="tipoDoc" onchange="update()">
             <option value="consignacion">Entrega en Consignación</option>
             <option value="cotizacion">Cotización de Productos</option>
+            <option value="cuenta">Cuenta de Cobro</option>
         </select>
     </div>
 
@@ -86,15 +87,17 @@
 
 <div id="hoja-pdf">
     <div class="header">
-        <h1>LUMY</h1>
+        <h1 id="outTituloDoc">LUMY</h1>
         <small>- VELAS ARTESANALES -</small>
     </div>
 
     <div class="fecha" id="outFecha">Bogotá D.C, 5 de Mayo de 2026</div>
     
     <div class="intro">
-        <span id="outReceptor" style="font-weight:bold">NOMBRE CLIENTE</span> 
-        <span id="outFrase">nos recibe en consignación:</span>
+        <div id="boxReceptor">
+            <span id="outReceptor" style="font-weight:bold">NOMBRE CLIENTE</span><br>
+            <span id="outFrase">nos recibe en consignación:</span>
+        </div>
     </div>
 
     <table>
@@ -110,7 +113,7 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="2" style="text-align: right; border:none; padding-top:20px">TOTAL:</td>
+                <td colspan="2" style="text-align: right; border:none; padding-top:20px">TOTAL A PAGAR:</td>
                 <td id="outTotal" style="text-align: right; border-bottom: 2px double #000; padding-top:20px">$ 0</td>
             </tr>
         </tfoot>
@@ -133,7 +136,6 @@
 </div>
 
 <script>
-    // Agregar fila inicial al cargar
     window.onload = () => { addRow(); };
 
     function addRow() {
@@ -151,23 +153,29 @@
     }
 
     function update() {
-        // Actualizar Textos Básicos
         document.getElementById('outFecha').innerText = document.getElementById('inFecha').value;
         document.getElementById('outReceptor').innerText = document.getElementById('inReceptor').value || 'NOMBRE CLIENTE';
         document.getElementById('outNombreIzquierda').innerText = document.getElementById('inNombreIzquierda').value || 'NOMBRE RESPONSABLE';
         document.getElementById('outCargoIzquierda').innerText = document.getElementById('inCargoIzquierda').value.toUpperCase();
         document.getElementById('outNombreDerecha').innerText = document.getElementById('inNombreDerecha').value;
 
-        // Lógica de la Frase según tipo
+        // Lógica según tipo de documento
         const tipo = document.getElementById('tipoDoc').value;
         const outFrase = document.getElementById('outFrase');
+        const outTituloDoc = document.getElementById('outTituloDoc');
+        
         if(tipo === 'consignacion') {
-            outFrase.innerText = "nos recibe en consignación:";
-        } else {
-            outFrase.innerText = "presenta la siguiente cotización:";
+            outTituloDoc.innerText = "LUMY";
+            outFrase.innerHTML = "nos recibe en consignación:";
+        } else if(tipo === 'cotizacion') {
+            outTituloDoc.innerText = "COTIZACIÓN";
+            outFrase.innerHTML = "presenta la siguiente cotización:";
+        } else if(tipo === 'cuenta') {
+            outTituloDoc.innerText = "CUENTA DE COBRO";
+            // En cuenta de cobro, el cliente "DEBE" a LUMY
+            outFrase.innerHTML = "DEBE A: <strong>LUMY</strong><br>Por concepto de venta de productos artesanales:";
         }
 
-        // Actualizar Tabla y Gran Total
         const nombres = document.querySelectorAll('.p-nombre');
         const cants = document.querySelectorAll('.p-cant');
         const precios = document.querySelectorAll('.p-precio');
